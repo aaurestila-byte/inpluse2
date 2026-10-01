@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inpulse 300 MK2 DJ</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#15151b"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#f1efe9;--card:#fff;--fg:#1b1b22;--mut:#6b6b78;--line:#d9d6cc;--a:#d6336c;--b:#0c8599;--btn:#ecebe4;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15151b;--card:#1f1f28;--fg:#ececf2;--mut:#9a9aad;--line:#33333f;--a:#ff5c93;--b:#3cc9de;--btn:#2b2b37}}
+:root[data-theme="dark"]{--bg:#15151b;--card:#1f1f28;--fg:#ececf2;--mut:#9a9aad;--line:#33333f;--a:#ff5c93;--b:#3cc9de;--btn:#2b2b37}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 ui-rounded,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:12px}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+h1{font-size:20px;margin:0 auto 0 0;letter-spacing:-.01em}
+h2{margin:0 0 8px;font-size:17px;color:var(--c)}
+button,.file{font:inherit;color:var(--fg);background:var(--btn);border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer;touch-action:manipulation;display:inline-block}
+button:active,.file:active{transform:translateY(1px)}
+button:focus-visible,input:focus-visible,.file:focus-within{outline:2px solid var(--c,var(--a));outline-offset:2px}
+#conn{background:var(--a);color:#fff;border-color:transparent;font-weight:600}
+#st{color:var(--mut);font-size:13px;flex-basis:100%}
+.decks{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.decks{grid-template-columns:1fr}}
+.deck{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:14px;padding:12px}
+.nm{color:var(--mut);margin:8px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tm{font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;margin-bottom:4px}
+.row{display:flex;gap:8px;align-items:center;margin:10px 0}
+.row span{margin-left:auto;color:var(--mut)}
+.pads{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.pads button{padding:12px 0}
+.pads button.set{background:var(--c);color:#fff;border-color:transparent}
+.sl{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.sl label{display:flex;flex-direction:column;font-size:13px;color:var(--mut)}
+input[type=range]{width:100%;accent-color:var(--c,var(--a));min-height:28px}
+.mix{display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.mix label{display:flex;flex-direction:column;font-size:13px;color:var(--mut)}
+.mix .chk{flex-direction:row;gap:8px;align-items:center;grid-column:1/-1}
+#log{margin:12px 0 0;color:var(--mut);font-size:12px;min-height:1.4em;overflow-x:auto}
+.wf{width:100%;height:56px;display:block;background:var(--btn);border-radius:8px;margin:6px 0;touch-action:none}
+</style></head>
+<body>
+<header>
+<h1>Inpulse 300 MK2 DJ</h1>
+<button id="conn">Connect controller</button>
+<span id="st">Plug the controller in with a USB-C/OTG cable, then tap Connect. Touch controls below work without it.</span>
+</header>
+<main class="decks" id="decks"></main>
+<section class="mix">
+<label>Master volume<input type="range" id="mv" min="0" max="100" value="80"></label>
+<label>Crossfader<input type="range" id="xf" min="0" max="100" value="50"></label>
+<label class="chk"><input type="checkbox" id="inv"> Invert tempo faders (tick this if tempo moves the wrong way)</label>
+</section>
+<section class="mix" style="grid-template-columns:1fr"><label class="file">Load samples (pick up to 8 files)<input type="file" id="sf" accept="audio/*" multiple hidden></label><div class="pads" style="margin:0"><button data-sm="0">S1</button><button data-sm="1">S2</button><button data-sm="2">S3</button><button data-sm="3">S4</button><button data-sm="4">S5</button><button data-sm="5">S6</button><button data-sm="6">S7</button><button data-sm="7">S8</button></div></section>
+<pre id="log"></pre>
+<script>
+const $=s=>document.querySelector(s),D={};
+const AC=new(window.AudioContext||window.webkitAudioContext)();
+const master=AC.createGain();master.gain.value=.8;master.connect(AC.destination);
+const flt=(t,f)=>{const n=AC.createBiquadFilter();n.type=t;n.frequency.value=f;return n};
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+let out=null;
+const send=a=>{if(out)try{out.send(a)}catch(e){}};
+
+function mk(id){
+ const d={id,lp:null,bpm:0,pk:null,sl:null,buf:null,src:null,off:0,t0:0,play:false,rate:1,bend:0,eff:1,cue:0,hot:[],touch:false,prev:false,acc:0,last:0,bt:0};
+ d.g=AC.createGain();d.lo=flt('lowshelf',250);d.mi=flt('peaking',1000);d.mi.Q.value=.7;d.hi=flt('highshelf',3500);
+ d.fl=flt('allpass',1000);d.v=AC.createGain();d.x=AC.createGain();
+ d.g.connect(d.lo);d.lo.connect(d.mi);d.mi.connect(d.hi);d.hi.connect(d.fl);d.fl.connect(d.v);d.v.connect(d.x);d.x.connect(master);
+ d.pos=()=>{if(!d.play)return d.off;let p=d.off+(AC.currentTime-d.t0)*d.eff;const l=d.lp;if(l&&p>=l.e)p=l.s+((p-l.s)%(l.e-l.s));return Math.min(p,d.buf.duration)};
+ d.kill=()=>{if(d.src){d.src.onended=null;try{d.src.stop()}catch(e){}d.src=null}};
+ d.start=()=>{d.kill();const s=AC.createBufferSource();s.buffer=d.buf;s.playbackRate.value=d.eff;s.connect(d.g);
+  s.onended=()=>{if(d.src===s){d.src=null;d.play=false;d.off=0;led(d)}};d.t0=AC.currentTime;s.start(0,d.off);d.src=s};
+ d.go=()=>{if(!d.buf||d.play)return;d.start();d.play=true;led(d)};
+ d.stop=()=>{if(!d.play)return;d.off=d.pos();d.play=false;d.lp=null;d.kill();led(d)};
+ d.seek=t=>{if(!d.buf)return;d.lp=null;d.off=Math.max(0,Math.min(t,d.buf.duration-.05));if(d.play){d.t0=AC.currentTime;d.start()}};
+ d.setEff=()=>{if(d.play){d.off=d.pos();d.t0=AC.currentTime}d.eff=d.rate*(1+d.bend);if(d.src)d.src.playbackRate.value=d.eff};
+ return d}
+
+const dB=v=>v<.5?-26*(1-v*2):12*(v*2-1);
+function param(id,p,v){const d=D[id];
+ if(p==='vol')d.v.gain.value=v*v;
+ else if(p==='gain')d.g.gain.value=v*2;
+ else if(p==='lo')d.lo.gain.value=dB(v);
+ else if(p==='mi')d.mi.gain.value=dB(v);
+ else if(p==='hi')d.hi.gain.value=dB(v);
+ else if(p==='fl'){if(Math.abs(v-.5)<.03)d.fl.type='allpass';
+  else if(v<.5){d.fl.type='lowpass';d.fl.frequency.value=200*Math.pow(100,v*2)}
+  else{d.fl.type='highpass';d.fl.frequency.value=20*Math.pow(300,(v-.5)*2)}}
+ else if(p==='tempo'){const x=$('#inv').checked?1-v:v;d.rate=1+(x-.5)*.16;d.setEff();$('#tp'+id).textContent=((d.rate-1)*100).toFixed(1)+'%'}
+ const el=$(`[data-d="${id}"][data-p="${p}"]`);if(el)el.value=Math.round(v*100)}
+function xfade(x){D.A.x.gain.value=Math.cos(x*Math.PI/2);D.B.x.gain.value=Math.sin(x*Math.PI/2);$('#xf').value=Math.round(x*100)}
+
+function led(d){const st=0x90|(d.id==='A'?1:2);
+ send([st,7,d.play?127:0]);send([st,6,(!d.play&&d.buf&&Math.abs(d.off-d.cue)<.05)?127:0]);
+ $('#pl'+d.id).textContent=d.play?'Pause':'Play'}
+function hui(d){for(let i=0;i<8;i++)$(`[data-h="${d.id}${i}"]`).classList.toggle('set',d.hot[i]!=null)}
+function cueDown(d){if(!d.buf)return;
+ if(d.play){d.stop();d.seek(d.cue);led(d)}
+ else if(Math.abs(d.off-d.cue)<.05){d.prev=true;d.go()}
+ else{d.cue=d.off;led(d)}}
+function cueUp(d){if(d.prev){d.prev=false;d.stop();d.seek(d.cue);led(d)}}
+function hot(d,i,del){if(!d.buf)return;
+ if(del)d.hot[i]=null;else if(d.hot[i]==null)d.hot[i]=d.pos();else d.seek(d.hot[i]);hui(d)}
+function jog(d,delta,scratch){if(!d.buf)return;
+ if(scratch&&d.touch){d.acc+=delta*.01;const n=performance.now();if(n-d.last>35){d.seek(d.pos()+d.acc);d.acc=0;d.last=n}}
+ else{d.bend=Math.max(-.25,Math.min(.25,delta*.012));d.setEff();clearTimeout(d.bt);d.bt=setTimeout(()=>{d.bend=0;d.setEff()},120)}}
+
+const ROLL=[.125,.25,.5,1,2,4,8,16],LATCH=[.25,.5,1,2,4,8,16,32];
+function detect(buf){const x=buf.getChannelData(0),hop=Math.floor(buf.sampleRate/100),tot=Math.floor(x.length/hop),n=Math.min(tot,6000),s0=Math.floor((tot-n)/2),e=new Float32Array(n),o=new Float32Array(n);
+ for(let i=0;i<n;i++){let a=0;const b=(s0+i)*hop;for(let j=0;j<hop;j+=4)a+=Math.abs(x[b+j]);e[i]=a}
+ for(let i=1;i<n;i++)o[i]=Math.max(0,e[i]-e[i-1]);
+ let best=0,bb=0;for(let bpm=75;bpm<=165;bpm+=.25){const lag=6000/bpm;let sc=0;for(let i=0;i+lag+1<n;i++){const k=Math.floor(i+lag),f=i+lag-k;sc+=o[i]*(o[k]*(1-f)+o[k+1]*f)}if(sc>best){best=sc;bb=bpm}}
+ return bb}
+function peaks(buf){const x=buf.getChannelData(0),n=600,st=Math.max(1,Math.floor(x.length/n)),p=new Float32Array(n);
+ for(let i=0;i<n;i++){let m=0;for(let j=0;j<st;j+=16)m=Math.max(m,Math.abs(x[i*st+j]||0));p[i]=m}
+ const mx=Math.max(...p)||1;return p.map(v=>v/mx)}
+function wave(d){const c=$('#wf'+d.id),g=c.getContext('2d'),W=c.width,H=c.height;g.clearRect(0,0,W,H);if(!d.pk)return;const T=d.buf.duration;
+ g.fillStyle=d.col;for(let i=0;i<W;i++){const h=Math.max(1,d.pk[i]*H*.95);g.fillRect(i,(H-h)/2,1,h)}
+ if(d.lp){g.globalAlpha=.3;g.fillStyle=d.fg;g.fillRect(d.lp.s/T*W,0,(d.lp.e-d.lp.s)/T*W,H)}
+ g.fillStyle=d.fg;g.globalAlpha=.6;g.fillRect(d.cue/T*W,0,2,H);d.hot.forEach(h=>{if(h!=null)g.fillRect(h/T*W,0,1,H)});
+ g.globalAlpha=1;g.fillRect(d.pos()/T*W,0,2,H)}
+function loopOn(d,n,roll){if(!d.buf||!d.play||!d.src)return;const p=d.pos(),now=AC.currentTime;
+ if(roll)d.sl={p,t:now};d.off=p;d.t0=now;d.lp={s:p,e:Math.min(p+n*60/(d.bpm||120),d.buf.duration)};
+ d.src.loopStart=d.lp.s;d.src.loopEnd=d.lp.e;d.src.loop=true}
+function loopOff(d,slip){if(!d.lp)return;const now=AC.currentTime;
+ if(slip&&d.sl){const t=d.sl.p+(now-d.sl.t)*d.eff;d.sl=null;d.seek(t)}
+ else{const p=d.pos();d.lp=null;d.off=p;d.t0=now;if(d.src)d.src.loop=false}}
+function latch(d,n){d.lp?loopOff(d,false):loopOn(d,n,false)}
+function sync(d){const o=d.id==='A'?D.B:D.A;if(!d.bpm||!o.bpm)return;
+ const x=Math.max(0,Math.min(1,(o.bpm*o.rate/d.bpm-1)/.16+.5));param(d.id,'tempo',$('#inv').checked?1-x:x)}
+const SM=[],sg=AC.createGain();sg.connect(master);
+function smp(i){const b=SM[i];if(!b)return;const s=AC.createBufferSource();s.buffer=b;s.connect(sg);s.start()}
+$('#sf').onchange=async e=>{AC.resume();const fs=[...e.target.files].slice(0,8);
+ for(let i=0;i<fs.length;i++){try{SM[i]=await AC.decodeAudioData(await fs[i].arrayBuffer());$(`[data-sm="${i}"]`).textContent=fs[i].name.slice(0,7)}catch(err){}}};
+const MAP={0:'vol',1:'fl',2:'lo',3:'mi',4:'hi',5:'gain',8:'tempo'};
+function onmsg(e){const [s,a,b]=e.data,t=s&0xF0,ch=s&15;
+ $('#log').textContent='MIDI '+[s,a,b].map(x=>x.toString(16).padStart(2,'0')).join(' ');
+ const dk=ch===1?D.A:ch===2?D.B:null;
+ if(t===0x90||t===0x80){const on=t===0x90&&b>0;
+  if(dk){if(a===7&&on)dk.play?dk.stop():dk.go();else if(a===6)on?cueDown(dk):cueUp(dk);else if(a===8)dk.touch=on;else if(a===5&&on)sync(dk)}
+  const pd=ch===6?D.A:ch===7?D.B:null;
+  if(pd){const i=a&7,g=a>>3;if(g<2){if(on)hot(pd,i,g===1)}else if(g===2){on?loopOn(pd,ROLL[i],true):loopOff(pd,true)}else if(g===4){if(on)latch(pd,LATCH[i])}else if(g===6){if(on)smp(i)}}}
+ else if(t===0xB0){if(a>=0x20&&a<0x40)return;const v=b/127;
+  if(ch===0&&a===0)xfade(v);
+  if(!dk)return;
+  if(MAP[a])param(dk.id,MAP[a],v);else if(a===9||a===10)jog(dk,b<64?b:b-128,a===10)}}
+
+$('#conn').onclick=async()=>{AC.resume();
+ try{const m=await navigator.requestMIDIAccess();
+  const hook=()=>{let name='';out=null;
+   m.inputs.forEach(i=>{if(/inpulse/i.test(i.name)){i.onmidimessage=onmsg;name=i.name}});
+   m.outputs.forEach(o=>{if(/inpulse/i.test(o.name))out=o});
+   $('#st').textContent=name?'Connected: '+name:'No Inpulse found. Check the USB-OTG cable, then tap Connect again.'};
+  hook();m.onstatechange=hook}
+ catch(err){$('#st').textContent='MIDI is blocked ('+err.message+'). Open this page directly in Chrome, not inside another app.'}};
+
+async function load(d,f){AC.resume();d.stop();d.off=0;d.cue=0;d.hot=[];d.pk=null;d.bpm=0;$('#bp'+d.id).textContent='--';$('#nm'+d.id).textContent='Decoding…';
+ try{d.buf=await AC.decodeAudioData(await f.arrayBuffer());d.pk=peaks(d.buf);d.bpm=detect(d.buf);d.col=getComputedStyle($('#wf'+d.id).closest('section')).getPropertyValue('--c').trim();d.fg=getComputedStyle(document.body).color;$('#bp'+d.id).textContent=d.bpm?d.bpm.toFixed(1):'--';$('#nm'+d.id).textContent=f.name}
+ catch(e){d.buf=null;$('#nm'+d.id).textContent='Could not decode this file. Try MP3, M4A or WAV.'}
+ hui(d);led(d)}
+
+const SL=[['vol','Volume',80],['gain','Gain',50],['hi','High',50],['mi','Mid',50],['lo','Low',50],['fl','Filter',50],['tempo','Tempo',50]];
+$('#decks').innerHTML=['A','B'].map(id=>`<section class="deck" style="--c:var(--${id==='A'?'a':'b'})"><h2>Deck ${id}</h2>
+<label class="file">Load track<input type="file" accept="audio/*" data-f="${id}" hidden></label>
+<div class="nm" id="nm${id}">No track loaded</div><div class="tm" id="tm${id}">0:00 / 0:00</div><canvas class="wf" id="wf${id}" width="600" height="56"></canvas>
+<input type="range" id="pr${id}" min="0" max="1000" value="0" data-s="${id}" aria-label="Position">
+<div class="row"><button id="pl${id}" data-pl="${id}">Play</button><button data-cu="${id}">Cue</button><button data-sy="${id}">Sync</button><span>BPM <b id="bp${id}">--</b> &nbsp; Tempo <b id="tp${id}">0.0%</b></span></div>
+<div class="pads">${[0,1,2,3,4,5,6,7].map(i=>`<button data-h="${id}${i}" aria-label="Hot cue ${i+1}">${i+1}</button>`).join('')}</div>
+<div class="sl">${SL.map(([p,n,v])=>`<label>${n}<input type="range" min="0" max="100" value="${v}" data-d="${id}" data-p="${p}"></label>`).join('')}</div></section>`).join('');
+D.A=mk('A');D.B=mk('B');
+for(const id of 'AB')for(const [p,,v] of SL)param(id,p,v/100);
+xfade(.5);
+
+document.addEventListener('input',e=>{const t=e.target,ds=t.dataset;
+ if(ds.p)param(ds.d,ds.p,t.value/100);
+ else if(ds.s){const d=D[ds.s];if(d.buf)d.seek(t.value/1000*d.buf.duration)}
+ else if(t.id==='mv')master.gain.value=t.value/100;
+ else if(t.id==='xf')xfade(t.value/100)});
+$('#inv').onchange=()=>{for(const id of 'AB')param(id,'tempo',$(`[data-d="${id}"][data-p="tempo"]`).value/100)};
+document.addEventListener('change',e=>{const f=e.target.dataset.f;if(f&&e.target.files[0])load(D[f],e.target.files[0])});
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;AC.resume();
+ if(b.dataset.pl){const d=D[b.dataset.pl];d.play?d.stop():d.go()}
+ else if(b.dataset.h){hot(D[b.dataset.h[0]],+b.dataset.h[1],false)}else if(b.dataset.sy)sync(D[b.dataset.sy]);else if(b.dataset.sm!=null)smp(+b.dataset.sm)});
+document.addEventListener('pointerdown',e=>{const b=e.target.closest('[data-cu]');if(b)cueDown(D[b.dataset.cu]);if(e.target.classList.contains('wf')){const d=D[e.target.id.slice(2)],r=e.target.getBoundingClientRect();if(d.buf)d.seek((e.clientX-r.left)/r.width*d.buf.duration)}});
+document.addEventListener('pointerup',e=>{const b=e.target.closest('[data-cu]');if(b)cueUp(D[b.dataset.cu])});
+
+(function tick(){for(const k in D){const d=D[k];if(d.buf){const p=d.pos();
+ $('#tm'+k).textContent=fmt(p)+' / '+fmt(d.buf.duration);$('#pr'+k).value=p/d.buf.duration*1000;wave(d)}}
+ requestAnimationFrame(tick)})();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body></html>
