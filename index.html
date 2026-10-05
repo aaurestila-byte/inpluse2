@@ -15,427 +15,321 @@
 </head>
 <body>
 
-  <!-- TOP HEADER -->
-  <header class="app-header">
-    <div class="brand-section">
-      <div class="logo-badge">
-        <span>CROSS</span><span class="x-cross">DJ</span>
-        <span style="font-size:10px;color:var(--text-dim);font-weight:700;margin-left:4px">PRO</span>
+  <!-- TOP HEADER (CROSS DJ AUTHENTIC HEADER) -->
+  <header class="cdj-top-bar">
+    <!-- DECK A LOAD & BPM INFO -->
+    <div class="cdj-deck-hdr cdj-deck-hdr-a">
+      <button class="cdj-plus-btn" id="btn-load-track-A" title="Load track into Deck A">+</button>
+      <div class="cdj-hdr-bpm-block">
+        <span class="cdj-hdr-bpm-lbl">BPM :</span>
+        <span class="cdj-hdr-bpm-num" id="hdr-bpm-val-A">0.00</span>
       </div>
-      <span class="controller-badge" id="controller-status">MIDI Ready (Inpulse 300 MK2)</span>
-      <span class="controller-badge" id="db-status-badge" style="border-color:#2563eb;color:#60a5fa">💾 DB Synced</span>
-      <span class="offline-pill">● 100% OFFLINE</span>
+      <div class="cdj-hdr-title cdj-title-a" id="track-name-A" title="Deck A Track Title">DECK A: LOAD A SONG</div>
+      <div id="track-artist-A" style="display:none">DJ An2ny Offline Engine</div>
     </div>
 
-    <div class="header-center-tools">
-      <button class="rec-btn" id="btn-record-mix">
-        <span class="rec-dot"></span> ● REC MIX
-      </button>
+    <!-- CENTER UTILITIES & MODE TOGGLE -->
+    <div class="cdj-hdr-center">
+      <!-- Upper Icon Pill -->
+      <div class="cdj-top-pill">
+        <button class="cdj-pill-btn" id="btn-settings-gear" title="Settings, MIDI, Library & Mix Recording">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
+        <button class="cdj-pill-btn" id="btn-top-sampler" title="Sampler Bank">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M4 4h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 10h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 16h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4z"/></svg>
+        </button>
+        <button class="cdj-pill-btn" id="btn-top-waves-icon" title="Waveform Overview">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 3v18m-4-14v10m-4-6v2m12-10v18m4-14v10m-8-12v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <!-- Lower Mode Switcher -->
+      <div class="cdj-mode-switcher">
+        <button class="cdj-mode-btn" id="btn-view-mixer" title="Show Mixer View">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>
+        </button>
+        <button class="cdj-mode-btn active" id="btn-view-waves" title="Show Waveforms View">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 3v18m-4-14v10m-4-6v2m12-10v18m4-14v10m-8-12v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
     </div>
 
-    <div class="header-actions">
-      <button class="hdr-btn" id="btn-toggle-library" title="Toggle Music Library">
-        📂 Library
-      </button>
-      <button class="hdr-btn" id="btn-install-pwa" title="Install App on Device">
-        📲 Install App
-      </button>
-      <a href="/api/download-zip" class="hdr-btn btn-trigger-download" download="inpulse-300-mk2-cross-dj.zip" title="Download standalone offline ZIP project" style="text-decoration:none">
-        💾 Download ZIP
-      </a>
-      <button class="hdr-btn primary" id="btn-connect-midi">
-        🔌 Connect Controller
-      </button>
+    <!-- DECK B LOAD & BPM INFO -->
+    <div class="cdj-deck-hdr cdj-deck-hdr-b">
+      <div class="cdj-hdr-title cdj-title-b" id="track-name-B" title="Deck B Track Title">DECK B: LOAD A SONG</div>
+      <div id="track-artist-B" style="display:none">DJ An2ny Offline Engine</div>
+      <div class="cdj-hdr-bpm-block">
+        <span class="cdj-hdr-bpm-lbl">BPM :</span>
+        <span class="cdj-hdr-bpm-num" id="hdr-bpm-val-B">0.00</span>
+      </div>
+      <button class="cdj-plus-btn" id="btn-load-track-B" title="Load track into Deck B">+</button>
     </div>
   </header>
 
-  <!-- PARALLEL SCROLLING BEAT WAVEFORMS (CROSS DJ SIGNATURE) -->
-  <section class="parallel-wave-strip">
-    <canvas id="parallel-waves" class="parallel-wave-canvas" width="1200" height="64"></canvas>
-    <div class="phase-meter-container">
-      <span style="font-size:9px;color:var(--text-muted);font-weight:700">BEAT SYNC PHASE</span>
-      <div class="phase-meter-bar">
-        <div class="phase-marker" id="phase-marker" style="left:50%"></div>
-      </div>
-      <span style="font-size:9px;color:var(--text-muted);font-weight:700">MATCH</span>
-    </div>
-  </section>
+  <!-- MAIN DJ CONSOLE STAGE -->
+  <main class="cdj-main-stage">
 
-  <!-- MAIN DJ CONSOLE -->
-  <main class="main-console">
-
-    <!-- DECK A (ORANGE) -->
-    <section class="deck-card deck-a">
-      <div class="deck-header">
-        <span class="deck-label-badge">DECK A</span>
-        <div class="deck-meta-info">
-          <div class="deck-track-title" id="track-name-A">Neon Drive (House 124)</div>
-          <div class="deck-track-artist" id="track-artist-A">Cross DJ Offline Engine</div>
-        </div>
-        <div class="deck-time-display">
-          <div class="time-large" id="time-large-A">0:00.0</div>
-          <div class="time-sub" id="time-sub-A">-0:00.0</div>
-        </div>
-        <div class="bpm-pitch-hud">
-          <div class="key-box" id="key-hud-box-A" title="Musical Key (Camelot Wheel system)">
-            <span class="lbl">KEY</span>
-            <span class="val key-val" id="key-val-A">8A (Am)</span>
+    <!-- DECK A BLOCK (LEFT) -->
+    <section class="cdj-deck-block cdj-deck-a">
+      <!-- Upper Section: FX, Jog Platter, Pitch Slider -->
+      <div class="cdj-deck-upper">
+        <!-- FX Column (Left) -->
+        <div class="cdj-fx-col cdj-fx-col-a">
+          <div class="cdj-fx-header">DECK A FX</div>
+          <div class="cdj-fx-list">
+            <button class="cdj-fx-btn active-fx" id="btn-fx-a-1">Filter LP <span>▼</span></button>
+            <button class="cdj-fx-btn" id="btn-fx-a-2">Filter HP <span>▼</span></button>
+            <button class="cdj-fx-btn" id="btn-fx-a-3">Band Pass <span>▼</span></button>
           </div>
-          <div class="bpm-box">
-            <span class="lbl">BPM</span>
-            <span class="val" id="bpm-val-A">124.0</span>
-          </div>
-          <div class="pitch-box">
-            <span class="lbl">PITCH</span>
-            <span class="val" id="pitch-val-A">+0.0%</span>
+          <!-- Loop Module -->
+          <div class="cdj-loop-module">
+            <div class="cdj-loop-lbl">LOOP</div>
+            <div class="cdj-loop-controls">
+              <button class="cdj-loop-arrow" id="loop-half-A">◀</button>
+              <button class="cdj-loop-val" id="loop-active-A">1/2</button>
+              <button class="cdj-loop-arrow" id="loop-double-A">▶</button>
+            </div>
+            <!-- Hidden backward-compatible loop hooks -->
+            <button id="loop-in-A" style="display:none"></button>
+            <button id="loop-out-A" style="display:none"></button>
           </div>
         </div>
-      </div>
 
-      <!-- OVERVIEW WAVEFORM -->
-      <div class="overview-wave-wrap">
-        <canvas id="overview-wf-A" class="overview-canvas" width="600" height="52"></canvas>
-        <div class="wf-bend-highlight" id="bend-highlight-A"></div>
-      </div>
+        <!-- Jog Wheel (Center) -->
+        <div class="cdj-jog-wrap">
+          <!-- Flanking Corner Buttons -->
+          <button class="cdj-flank-btn top-left" id="nudge-minus-A" title="Pitch Bend Down">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+          </button>
+          <button class="cdj-flank-btn bottom-left" id="keylock-A" title="Key Lock / Master Tempo">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </button>
+          <button class="cdj-flank-btn top-right" id="nudge-plus-A" title="Pitch Bend Up">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+          </button>
+          <button class="cdj-flank-btn bottom-right" id="pfl-btn-A" title="Headphone CUE">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 3a9 9 0 0 0-9 9v7c0 1.1.9 2 2 2h4v-8H5v-1a7 7 0 0 1 14 0v1h-4v8h4c1.1 0 2-.9 2-2v-7a9 9 0 0 0-9-9z"/></svg>
+          </button>
 
-      <!-- PLATTER & TEMPO -->
-      <div class="deck-platter-section">
-        <div class="jog-platter-container">
-          <div class="jog-platter" id="jog-platter-A">
-            <div class="vinyl-grooves"></div>
-            <div class="jog-center-disc">
-              <div class="jog-needle-indicator" id="jog-needle-A"></div>
-              <div class="jog-center-label">DECK A</div>
-              <div class="jog-touch-label">SCRATCH</div>
+          <!-- Circular Platter -->
+          <div class="cdj-platter" id="jog-platter-A">
+            <div class="cdj-vinyl-ring"></div>
+            <!-- Center Disc -->
+            <div class="cdj-center-disc">
+              <div class="cdj-needle-indicator cdj-needle-a" id="jog-needle-A"></div>
+              <div class="cdj-disc-center-dot dot-a"></div>
+
+              <!-- Inside Readouts -->
+              <div class="cdj-disc-bpm">BPM : <span id="bpm-val-A">0.00</span></div>
+              <div class="cdj-disc-key" id="key-val-A">#?</div>
+              <div class="cdj-disc-pitch" id="pitch-val-A">±0.0%</div>
+              <div class="cdj-disc-times">
+                <div class="time-main" id="time-large-A">0.00.00</div>
+                <div class="time-sub" id="time-sub-A">0.00.00</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="tempo-column">
-          <span class="tempo-range-pill" id="tempo-range-A" title="Cycle tempo range">±16%</span>
-          <div class="vertical-slider-wrap">
-            <input type="range" id="tempo-slider-A" min="0" max="100" value="50" data-d="A" data-p="tempo" aria-label="Deck A Tempo">
-          </div>
-          <div class="tempo-nudge-btns">
-            <button class="nudge-btn" id="nudge-minus-A" title="Nudge backward">-</button>
-            <button class="nudge-btn" id="nudge-plus-A" title="Nudge forward">+</button>
+        <!-- Pitch Slider (Right) -->
+        <div class="cdj-tempo-col">
+          <div class="cdj-tempo-detent-badge" id="tempo-range-A">0%</div>
+          <div class="cdj-slider-track">
+            <input type="range" id="tempo-slider-A" min="0" max="100" value="50" data-d="A" data-p="tempo" orient="vertical" aria-label="Deck A Tempo Fader">
           </div>
         </div>
       </div>
 
-      <!-- TRANSPORT & SYNC -->
-      <div class="transport-row">
-        <button class="btn-transport btn-cue" id="btn-cue-A">
-          <span>◆ CUE</span>
-        </button>
-        <button class="btn-transport btn-play" id="btn-play-A">
-          <span>▶ PLAY</span>
-        </button>
-        <button class="btn-transport btn-sync" id="btn-sync-A">
-          <span>⚡ SYNC</span>
-        </button>
-        <button class="btn-keylock active" id="keylock-A" title="Key Lock / Master Tempo">
-          KEY LOCK
-        </button>
-      </div>
-
-      <!-- LOOP BAR -->
-      <div class="loop-bar">
-        <span style="font-weight:800;color:var(--text-dim);font-size:10px">LOOP</span>
-        <div class="loop-btns-group">
-          <button class="loop-btn" id="loop-in-A">IN</button>
-          <button class="loop-btn" id="loop-out-A">OUT</button>
-          <button class="loop-btn" id="loop-active-A">4 BEATS</button>
-          <button class="loop-btn" id="loop-half-A">1/2x</button>
-          <button class="loop-btn" id="loop-double-A">2x</button>
+      <!-- Lower Section: Performance Pads -->
+      <div class="cdj-pads-wrap">
+        <div class="cdj-pads-tab-bar">
+          <button class="cdj-pad-del-btn" id="btn-clear-cue-A" title="Delete Cues">🗑</button>
+          <button class="cdj-pad-mode-tab active tab-a-active" data-deck-tab="A" data-mode="hotcue">CUE</button>
+          <button class="cdj-pad-mode-tab" data-deck-tab="A" data-mode="sampler">🔊 SMP</button>
+          <button class="cdj-pad-mode-tab" data-deck-tab="A" data-mode="roll">✏️ SCRT</button>
+          <button class="cdj-pad-mode-tab" data-deck-tab="A" data-mode="fx">STEMS</button>
         </div>
-      </div>
-
-      <!-- PERFORMANCE PADS -->
-      <div class="performance-pads-wrap">
-        <div class="pad-mode-tabs">
-          <button class="pad-tab active" data-deck-tab="A" data-mode="hotcue">HOT CUE</button>
-          <button class="pad-tab" data-deck-tab="A" data-mode="roll">LOOP ROLL</button>
-          <button class="pad-tab" data-deck-tab="A" data-mode="sampler">SAMPLER</button>
-          <button class="pad-tab" data-deck-tab="A" data-mode="fx">FX UNIT</button>
-        </div>
-        <div class="pads-grid" id="pads-grid-A">
-          <button class="pad-btn" data-deck="A" data-pad="0">1</button>
-          <button class="pad-btn" data-deck="A" data-pad="1">2</button>
-          <button class="pad-btn" data-deck="A" data-pad="2">3</button>
-          <button class="pad-btn" data-deck="A" data-pad="3">4</button>
-          <button class="pad-btn" data-deck="A" data-pad="4">5</button>
-          <button class="pad-btn" data-deck="A" data-pad="5">6</button>
-          <button class="pad-btn" data-deck="A" data-pad="6">7</button>
-          <button class="pad-btn" data-deck="A" data-pad="7">8</button>
+        <div class="cdj-pads-grid" id="pads-grid-A">
+          <button class="cdj-pad-cell" data-deck="A" data-pad="0">1</button>
+          <button class="cdj-pad-cell" data-deck="A" data-pad="1">2</button>
+          <button class="cdj-pad-cell" data-deck="A" data-pad="2">3</button>
+          <button class="cdj-pad-cell" data-deck="A" data-pad="3">4</button>
+          <button class="cdj-pad-cell" data-deck="A" data-pad="4">5</button>
+          <button class="cdj-pad-cell" data-deck="A" data-pad="5">6</button>
+          <button class="cdj-pad-cell" data-deck="A" data-pad="6">7</button>
+          <button class="cdj-pad-cell" data-deck="A" data-pad="7">8</button>
         </div>
       </div>
     </section>
 
-    <!-- CENTER MIXER (CROSS DJ STYLE) -->
-    <section class="mixer-card">
-      <div class="mixer-header-row">
-        <span class="mixer-title">CROSS MIXER</span>
-        <div class="master-vol-group">
-          <label>MASTER</label>
-          <input type="range" id="master-vol" min="0" max="100" value="85" style="width:80px;height:14px;accent-color:#fff">
+    <!-- CENTER SECTION: DUAL PARALLEL WAVEFORMS OR MIXER -->
+    <section class="cdj-center-section" id="cdj-center-section">
+      <!-- 1. Waveforms View (Default active in screenshot) -->
+      <div class="cdj-center-waves" id="center-view-waves">
+        <canvas id="parallel-waves" class="cdj-waves-canvas" width="340" height="380"></canvas>
+        <div class="cdj-phase-meter-strip">
+          <div class="phase-meter-bar">
+            <div class="phase-marker" id="phase-marker" style="left:50%"></div>
+          </div>
+          <span id="sync-match-text">MATCH</span>
         </div>
+        <canvas id="overview-wf-A" class="overview-canvas" width="300" height="20" style="display:none"></canvas>
+        <canvas id="overview-wf-B" class="overview-canvas" width="300" height="20" style="display:none"></canvas>
       </div>
 
-      <!-- DUAL CHANNEL STRIPS -->
-      <div class="channels-container">
-        <!-- CHANNEL A -->
-        <div class="channel-strip ch-a">
-          <span class="ch-tag">CH 1</span>
-
-          <!-- GAIN -->
-          <div class="knob-row">
-            <div class="knob-label"><span>GAIN</span></div>
-            <div class="knob-slider-wrap">
-              <input type="range" min="0" max="100" value="50" data-d="A" data-p="gain" aria-label="Channel A Gain">
+      <!-- 2. Mixer View (Toggled via top mixer icon) -->
+      <div class="cdj-center-mixer" id="center-view-mixer" style="display:none">
+        <div class="cdj-mixer-channels">
+          <!-- CH 1 -->
+          <div class="cdj-ch-strip">
+            <span class="cdj-ch-label">CH 1</span>
+            <div class="cdj-ch-knobs">
+              <label>HI<input type="range" min="0" max="100" value="50" data-d="A" data-p="hi"></label>
+              <label>MID<input type="range" min="0" max="100" value="50" data-d="A" data-p="mi"></label>
+              <label>LOW<input type="range" min="0" max="100" value="50" data-d="A" data-p="lo"></label>
+              <label>FLT<input type="range" min="0" max="100" value="50" data-d="A" data-p="fl"></label>
+            </div>
+            <div class="cdj-ch-fader-slot">
+              <input type="range" min="0" max="100" value="85" data-d="A" data-p="vol" orient="vertical">
             </div>
           </div>
 
-          <!-- EQ HIGH -->
-          <div class="knob-row">
-            <div class="knob-label"><span>HI</span><button class="kill-btn" id="kill-hi-A">KILL</button></div>
-            <div class="knob-slider-wrap">
-              <input type="range" min="0" max="100" value="50" data-d="A" data-p="hi" aria-label="Channel A High">
+          <!-- CH 2 -->
+          <div class="cdj-ch-strip">
+            <span class="cdj-ch-label">CH 2</span>
+            <div class="cdj-ch-knobs">
+              <label>HI<input type="range" min="0" max="100" value="50" data-d="B" data-p="hi"></label>
+              <label>MID<input type="range" min="0" max="100" value="50" data-d="B" data-p="mi"></label>
+              <label>LOW<input type="range" min="0" max="100" value="50" data-d="B" data-p="lo"></label>
+              <label>FLT<input type="range" min="0" max="100" value="50" data-d="B" data-p="fl"></label>
             </div>
-          </div>
-
-          <!-- EQ MID -->
-          <div class="knob-row">
-            <div class="knob-label"><span>MID</span><button class="kill-btn" id="kill-mid-A">KILL</button></div>
-            <div class="knob-slider-wrap">
-              <input type="range" min="0" max="100" value="50" data-d="A" data-p="mi" aria-label="Channel A Mid">
+            <div class="cdj-ch-fader-slot">
+              <input type="range" min="0" max="100" value="85" data-d="B" data-p="vol" orient="vertical">
             </div>
-          </div>
-
-          <!-- EQ LOW -->
-          <div class="knob-row">
-            <div class="knob-label"><span>LOW</span><button class="kill-btn" id="kill-low-A">KILL</button></div>
-            <div class="knob-slider-wrap">
-              <input type="range" min="0" max="100" value="50" data-d="A" data-p="lo" aria-label="Channel A Low">
-            </div>
-          </div>
-
-          <!-- COLOR FILTER -->
-          <div class="knob-row">
-            <div class="knob-label"><span>FILTER</span></div>
-            <div class="knob-slider-wrap">
-              <input type="range" min="0" max="100" value="50" data-d="A" data-p="fl" aria-label="Channel A Filter">
-            </div>
-          </div>
-
-          <!-- FADER & STEREO VU METER -->
-          <div class="fader-and-meter-wrap">
-            <div class="ch-fader-wrap">
-              <input type="range" min="0" max="100" value="85" data-d="A" data-p="vol" aria-label="Channel A Volume">
-            </div>
-            <div class="vu-meter" id="vu-meter-A">
-              <div class="vu-led red"></div>
-              <div class="vu-led amber"></div>
-              <div class="vu-led green"></div>
-              <div class="vu-led green"></div>
-              <div class="vu-led green"></div>
-              <div class="vu-led green"></div>
-              <div class="vu-led green"></div>
-              <div class="vu-led green"></div>
-            </div>
-          </div>
-
-          <button class="pfl-btn" id="pfl-btn-A">🎧 CUE</button>
-        </div>
-
-        <!-- CHANNEL B -->
-        <div class="channel-strip ch-b">
-          <span class="ch-tag">CH 2</span>
-
-          <!-- GAIN -->
-          <div class="knob-row">
-            <div class="knob-label"><span>GAIN</span></div>
-            <div class="knob-slider-wrap">
-              <input type="range" min="0" max="100" value="50" data-d="B" data-p="gain" aria-label="Channel B Gain">
-            </div>
-          </div>
-
-          <!-- EQ HIGH -->
-          <div class="knob-row">
-            <div class="knob-label"><span>HI</span><button class="kill-btn" id="kill-hi-B">KILL</button></div>
-            <div class="knob-slider-wrap">
-              <input type="range" min="0" max="100" value="50" data-d="B" data-p="hi" aria-label="Channel B High">
-            </div>
-          </div>
-
-          <!-- EQ MID -->
-          <div class="knob-row">
-            <div class="knob-label"><span>MID</span><button class="kill-btn" id="kill-mid-B">KILL</button></div>
-            <div class="knob-slider-wrap">
-              <input type="range" min="0" max="100" value="50" data-d="B" data-p="mi" aria-label="Channel B Mid">
-            </div>
-          </div>
-
-          <!-- EQ LOW -->
-          <div class="knob-row">
-            <div class="knob-label"><span>LOW</span><button class="kill-btn" id="kill-low-B">KILL</button></div>
-            <div class="knob-slider-wrap">
-              <input type="range" min="0" max="100" value="50" data-d="B" data-p="lo" aria-label="Channel B Low">
-            </div>
-          </div>
-
-          <!-- COLOR FILTER -->
-          <div class="knob-row">
-            <div class="knob-label"><span>FILTER</span></div>
-            <div class="knob-slider-wrap">
-              <input type="range" min="0" max="100" value="50" data-d="B" data-p="fl" aria-label="Channel B Filter">
-            </div>
-          </div>
-
-          <!-- FADER & STEREO VU METER -->
-          <div class="fader-and-meter-wrap">
-            <div class="ch-fader-wrap">
-              <input type="range" min="0" max="100" value="85" data-d="B" data-p="vol" aria-label="Channel B Volume">
-            </div>
-            <div class="vu-meter" id="vu-meter-B">
-              <div class="vu-led red"></div>
-              <div class="vu-led amber"></div>
-              <div class="vu-led green"></div>
-              <div class="vu-led green"></div>
-              <div class="vu-led green"></div>
-              <div class="vu-led green"></div>
-              <div class="vu-led green"></div>
-              <div class="vu-led green"></div>
-            </div>
-          </div>
-
-          <button class="pfl-btn" id="pfl-btn-B">🎧 CUE</button>
-        </div>
-      </div>
-
-      <!-- CROSSFADER -->
-      <div class="crossfader-section">
-        <div class="xfade-top-bar">
-          <span>CROSSFADER</span>
-          <div class="curve-selector">
-            <span class="curve-opt active" data-curve="smooth">SMOOTH</span>
-            <span class="curve-opt" data-curve="sharp">SHARP</span>
-            <span class="curve-opt" data-curve="cut">CUT</span>
           </div>
         </div>
-        <input type="range" id="crossfader" class="crossfader-input" min="0" max="100" value="50" aria-label="Crossfader">
       </div>
     </section>
 
-    <!-- DECK B (CYAN) -->
-    <section class="deck-card deck-b">
-      <div class="deck-header">
-        <span class="deck-label-badge">DECK B</span>
-        <div class="deck-meta-info">
-          <div class="deck-track-title" id="track-name-B">Cyber Pulse (Techno 130)</div>
-          <div class="deck-track-artist" id="track-artist-B">Cross DJ Offline Engine</div>
-        </div>
-        <div class="deck-time-display">
-          <div class="time-large" id="time-large-B">0:00.0</div>
-          <div class="time-sub" id="time-sub-B">-0:00.0</div>
-        </div>
-        <div class="bpm-pitch-hud">
-          <div class="key-box" id="key-hud-box-B" title="Musical Key (Camelot Wheel system)">
-            <span class="lbl">KEY</span>
-            <span class="val key-val" id="key-val-B">6A (Gm)</span>
-          </div>
-          <div class="bpm-box">
-            <span class="lbl">BPM</span>
-            <span class="val" id="bpm-val-B">130.0</span>
-          </div>
-          <div class="pitch-box">
-            <span class="lbl">PITCH</span>
-            <span class="val" id="pitch-val-B">+0.0%</span>
+    <!-- DECK B BLOCK (RIGHT) -->
+    <section class="cdj-deck-block cdj-deck-b">
+      <!-- Upper Section: Pitch Slider, Jog Platter, FX -->
+      <div class="cdj-deck-upper">
+        <!-- Pitch Slider (Left) -->
+        <div class="cdj-tempo-col">
+          <div class="cdj-tempo-detent-badge" id="tempo-range-B">0%</div>
+          <div class="cdj-slider-track">
+            <input type="range" id="tempo-slider-B" min="0" max="100" value="50" data-d="B" data-p="tempo" orient="vertical" aria-label="Deck B Tempo Fader">
           </div>
         </div>
-      </div>
 
-      <!-- OVERVIEW WAVEFORM -->
-      <div class="overview-wave-wrap">
-        <canvas id="overview-wf-B" class="overview-canvas" width="600" height="52"></canvas>
-        <div class="wf-bend-highlight" id="bend-highlight-B"></div>
-      </div>
+        <!-- Jog Wheel (Center) -->
+        <div class="cdj-jog-wrap">
+          <!-- Flanking Corner Buttons -->
+          <button class="cdj-flank-btn top-left" id="nudge-minus-B" title="Pitch Bend Down">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+          </button>
+          <button class="cdj-flank-btn bottom-left" id="keylock-B" title="Key Lock / Master Tempo">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </button>
+          <button class="cdj-flank-btn top-right" id="nudge-plus-B" title="Pitch Bend Up">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+          </button>
+          <button class="cdj-flank-btn bottom-right" id="pfl-btn-B" title="Headphone CUE">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 3a9 9 0 0 0-9 9v7c0 1.1.9 2 2 2h4v-8H5v-1a7 7 0 0 1 14 0v1h-4v8h4c1.1 0 2-.9 2-2v-7a9 9 0 0 0-9-9z"/></svg>
+          </button>
 
-      <!-- PLATTER & TEMPO -->
-      <div class="deck-platter-section">
-        <div class="jog-platter-container">
-          <div class="jog-platter" id="jog-platter-B">
-            <div class="vinyl-grooves"></div>
-            <div class="jog-center-disc">
-              <div class="jog-needle-indicator" id="jog-needle-B"></div>
-              <div class="jog-center-label">DECK B</div>
-              <div class="jog-touch-label">SCRATCH</div>
+          <!-- Circular Platter -->
+          <div class="cdj-platter" id="jog-platter-B">
+            <div class="cdj-vinyl-ring"></div>
+            <!-- Center Disc -->
+            <div class="cdj-center-disc">
+              <div class="cdj-needle-indicator cdj-needle-b" id="jog-needle-B"></div>
+              <div class="cdj-disc-center-dot dot-b"></div>
+
+              <!-- Inside Readouts -->
+              <div class="cdj-disc-bpm">BPM : <span id="bpm-val-B">0.00</span></div>
+              <div class="cdj-disc-key" id="key-val-B">#?</div>
+              <div class="cdj-disc-pitch" id="pitch-val-B">±0.0%</div>
+              <div class="cdj-disc-times">
+                <div class="time-main" id="time-large-B">0.00.00</div>
+                <div class="time-sub" id="time-sub-B">0.00.00</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="tempo-column">
-          <span class="tempo-range-pill" id="tempo-range-B" title="Cycle tempo range">±16%</span>
-          <div class="vertical-slider-wrap">
-            <input type="range" id="tempo-slider-B" min="0" max="100" value="50" data-d="B" data-p="tempo" aria-label="Deck B Tempo">
+        <!-- FX Column (Right) -->
+        <div class="cdj-fx-col cdj-fx-col-b">
+          <div class="cdj-fx-header">DECK B FX</div>
+          <div class="cdj-fx-list">
+            <button class="cdj-fx-btn active-fx-b" id="btn-fx-b-1">Filter LP <span>▼</span></button>
+            <button class="cdj-fx-btn" id="btn-fx-b-2">Filter HP <span>▼</span></button>
+            <button class="cdj-fx-btn" id="btn-fx-b-3">Band Pass <span>▼</span></button>
           </div>
-          <div class="tempo-nudge-btns">
-            <button class="nudge-btn" id="nudge-minus-B" title="Nudge backward">-</button>
-            <button class="nudge-btn" id="nudge-plus-B" title="Nudge forward">+</button>
+          <!-- Loop Module -->
+          <div class="cdj-loop-module">
+            <div class="cdj-loop-lbl">LOOP</div>
+            <div class="cdj-loop-controls">
+              <button class="cdj-loop-arrow" id="loop-half-B">◀</button>
+              <button class="cdj-loop-val" id="loop-active-B">1/2</button>
+              <button class="cdj-loop-arrow" id="loop-double-B">▶</button>
+            </div>
+            <!-- Hidden backward-compatible loop hooks -->
+            <button id="loop-in-B" style="display:none"></button>
+            <button id="loop-out-B" style="display:none"></button>
           </div>
         </div>
       </div>
 
-      <!-- TRANSPORT & SYNC -->
-      <div class="transport-row">
-        <button class="btn-transport btn-cue" id="btn-cue-B">
-          <span>◆ CUE</span>
-        </button>
-        <button class="btn-transport btn-play" id="btn-play-B">
-          <span>▶ PLAY</span>
-        </button>
-        <button class="btn-transport btn-sync" id="btn-sync-B">
-          <span>⚡ SYNC</span>
-        </button>
-        <button class="btn-keylock active" id="keylock-B" title="Key Lock / Master Tempo">
-          KEY LOCK
-        </button>
-      </div>
-
-      <!-- LOOP BAR -->
-      <div class="loop-bar">
-        <span style="font-weight:800;color:var(--text-dim);font-size:10px">LOOP</span>
-        <div class="loop-btns-group">
-          <button class="loop-btn" id="loop-in-B">IN</button>
-          <button class="loop-btn" id="loop-out-B">OUT</button>
-          <button class="loop-btn" id="loop-active-B">4 BEATS</button>
-          <button class="loop-btn" id="loop-half-B">1/2x</button>
-          <button class="loop-btn" id="loop-double-B">2x</button>
+      <!-- Lower Section: Performance Pads -->
+      <div class="cdj-pads-wrap">
+        <div class="cdj-pads-tab-bar">
+          <button class="cdj-pad-mode-tab active tab-b-active" data-deck-tab="B" data-mode="hotcue">▶ CUE</button>
+          <button class="cdj-pad-mode-tab" data-deck-tab="B" data-mode="sampler">🔊 SMP</button>
+          <button class="cdj-pad-mode-tab" data-deck-tab="B" data-mode="roll">✏️ SCRT</button>
+          <button class="cdj-pad-mode-tab" data-deck-tab="B" data-mode="fx">STEMS</button>
         </div>
-      </div>
-
-      <!-- PERFORMANCE PADS -->
-      <div class="performance-pads-wrap">
-        <div class="pad-mode-tabs">
-          <button class="pad-tab active" data-deck-tab="B" data-mode="hotcue">HOT CUE</button>
-          <button class="pad-tab" data-deck-tab="B" data-mode="roll">LOOP ROLL</button>
-          <button class="pad-tab" data-deck-tab="B" data-mode="sampler">SAMPLER</button>
-          <button class="pad-tab" data-deck-tab="B" data-mode="fx">FX UNIT</button>
-        </div>
-        <div class="pads-grid" id="pads-grid-B">
-          <button class="pad-btn" data-deck="B" data-pad="0">1</button>
-          <button class="pad-btn" data-deck="B" data-pad="1">2</button>
-          <button class="pad-btn" data-deck="B" data-pad="2">3</button>
-          <button class="pad-btn" data-deck="B" data-pad="3">4</button>
-          <button class="pad-btn" data-deck="B" data-pad="4">5</button>
-          <button class="pad-btn" data-deck="B" data-pad="5">6</button>
-          <button class="pad-btn" data-deck="B" data-pad="6">7</button>
-          <button class="pad-btn" data-deck="B" data-pad="7">8</button>
+        <div class="cdj-pads-grid" id="pads-grid-B">
+          <button class="cdj-pad-cell" data-deck="B" data-pad="0">1</button>
+          <button class="cdj-pad-cell" data-deck="B" data-pad="1">2</button>
+          <button class="cdj-pad-cell" data-deck="B" data-pad="2">3</button>
+          <button class="cdj-pad-cell" data-deck="B" data-pad="3">4</button>
+          <button class="cdj-pad-cell" data-deck="B" data-pad="4">5</button>
+          <button class="cdj-pad-cell" data-deck="B" data-pad="5">6</button>
+          <button class="cdj-pad-cell" data-deck="B" data-pad="6">7</button>
+          <button class="cdj-pad-cell" data-deck="B" data-pad="7">8</button>
         </div>
       </div>
     </section>
 
   </main>
+
+  <!-- BOTTOM TRANSPORT & CROSSFADER BAR -->
+  <footer class="cdj-transport-bar">
+    <!-- DECK A TRANSPORT (CUE, PLAY, SYNC) -->
+    <div class="cdj-transport-group-a">
+      <button class="cdj-tr-btn btn-cue" id="btn-cue-A">CUE</button>
+      <button class="cdj-tr-btn btn-play" id="btn-play-A">PLAY</button>
+      <button class="cdj-tr-btn btn-sync" id="btn-sync-A">SYNC</button>
+    </div>
+
+    <!-- CENTER CROSSFADER -->
+    <div class="cdj-xfader-wrap">
+      <button class="cdj-xfader-nudge" id="btn-xfade-left">◀</button>
+      <div class="cdj-xfader-slot">
+        <input type="range" id="crossfader" min="0" max="100" value="50" aria-label="Crossfader">
+      </div>
+      <button class="cdj-xfader-nudge" id="btn-xfade-right">▶</button>
+    </div>
+
+    <!-- DECK B TRANSPORT (SYNC, CUE, PLAY - EXACT ORDER IN SCREENSHOT) -->
+    <div class="cdj-transport-group-b">
+      <button class="cdj-tr-btn btn-sync" id="btn-sync-B">SYNC</button>
+      <button class="cdj-tr-btn btn-cue" id="btn-cue-B">CUE</button>
+      <button class="cdj-tr-btn btn-play" id="btn-play-B">PLAY</button>
+    </div>
+  </footer>
 
   <!-- BOTTOM DRAWER: CRATE, OFFLINE LIBRARY & RECORDINGS -->
   <section class="bottom-drawer">
@@ -653,7 +547,7 @@
   <!-- FOOTER: MIDI ACTIVITY LOG -->
   <footer class="midi-status-footer">
     <span id="midi-log-text">MIDI: Controller ready. Connect Hercules DJControl Inpulse 300 MK2 via USB.</span>
-    <span>Cross DJ Pro Audio Engine v2.0 • Offline PWA</span>
+    <span>DJ An2ny Audio Engine v2.0 • Offline PWA</span>
   </footer>
 
   <script src="app.js"></script>

@@ -33,8 +33,8 @@ const fmt = s => {
   if (isNaN(s) || s < 0) s = 0;
   const m = Math.floor(s / 60);
   const sc = Math.floor(s % 60);
-  const ms = Math.floor((s % 1) * 10);
-  return `${m}:${String(sc).padStart(2, '0')}.${ms}`;
+  const ms = Math.floor((s % 1) * 100);
+  return `${m}.${String(sc).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
 };
 const fmtMinSec = s => {
   if (isNaN(s) || s < 0) s = 0;
@@ -57,7 +57,7 @@ function createDeck(id) {
     buf: null,
     src: null,
     name: 'No track loaded',
-    artist: 'Cross DJ Offline',
+    artist: 'DJ An2ny Offline',
     off: 0,
     t0: 0,
     play: false,
@@ -80,6 +80,7 @@ function createDeck(id) {
     padMode: 'hotcue', // 'hotcue', 'roll', 'sampler', 'fx'
     key: null,
     keyObj: null,
+    syncActive: false,
     // EQ Kill states
     killLo: false,
     killMi: false,
@@ -178,6 +179,16 @@ function createDeck(id) {
 
   d.go = () => {
     if (!d.buf || d.play) return;
+    const other = d.id === 'A' ? D.B : D.A;
+    if (d.syncActive && other.play && other.bpm && d.bpm) {
+      // Auto-quantize phase on play start to match master deck beat!
+      const masterBpm = other.bpm * other.rate;
+      const beatLenMaster = 60 / masterBpm;
+      const beatLenThis = 60 / (d.bpm * d.rate);
+      const masterPhase = (other.pos() % beatLenMaster) / beatLenMaster;
+      const curBeat = Math.round(d.pos() / beatLenThis);
+      d.off = Math.max(0, curBeat * beatLenThis + masterPhase * beatLenThis);
+    }
     d.start();
     d.play = true;
     updateTransportUI(d);
@@ -211,9 +222,11 @@ function createDeck(id) {
     if (d.src) {
       d.src.playbackRate.value = d.eff;
     }
-    const bpmDisplay = (d.bpm * d.rate).toFixed(1);
+    const bpmDisplay = (d.bpm * d.rate).toFixed(2);
     const pitchOffset = ((d.rate - 1) * 100).toFixed(1);
-    $(`#bpm-val-${d.id}`).textContent = d.bpm ? bpmDisplay : '--';
+    $(`#bpm-val-${d.id}`).textContent = d.bpm ? bpmDisplay : '0.00';
+    const hdrBpm = $(`#hdr-bpm-val-${d.id}`);
+    if (hdrBpm) hdrBpm.textContent = d.bpm ? bpmDisplay : '0.00';
     $(`#pitch-val-${d.id}`).textContent = (d.rate >= 1 ? '+' : '') + pitchOffset + '%';
   };
 
@@ -256,6 +269,12 @@ function param(id, p, v) {
     const x = inverted ? 1 - v : v;
     d.rate = 1 + (x - 0.5) * d.tempoRange;
     d.setEff();
+
+    // If master deck tempo changes, automatically update any synced deck!
+    const other = id === 'A' ? D.B : D.A;
+    if (other && other.syncActive) {
+      syncDeck(other, true);
+    }
   }
 
   const el = $(`[data-d="${id}"][data-p="${p}"]`);
@@ -296,11 +315,17 @@ function updateTransportUI(d) {
     const atCue = !d.play && d.buf && Math.abs(d.off - d.cue) < 0.05;
     cueBtn.classList.toggle('active', atCue);
   }
+  const syncBtn = $(`#btn-sync-${d.id}`);
+  if (syncBtn) {
+    syncBtn.classList.toggle('active', Boolean(d.syncActive));
+  }
 
   // MIDI LEDs for Inpulse 300 MK2
   const st = 0x90 | (d.id === 'A' ? 1 : 2);
   sendMidi([st, 7, d.play ? 127 : 0]);
   sendMidi([st, 6, (!d.play && d.buf && Math.abs(d.off - d.cue) < 0.05) ? 127 : 0]);
+  sendMidi([st, 5, d.syncActive ? 127 : 0]);
+  sendMidi([st, 9, d.syncActive ? 127 : 0]);
 }
 
 function updateHotCueUI(d) {
@@ -408,25 +433,96 @@ function loopOff(d, slip = false) {
   $(`#loop-active-${d.id}`)?.classList.remove('active');
 }
 
-function syncDeck(d) {
+// Professional DJ Sync Engine with Intelligent BPM Ratio & Phase Lock
+function syncDeck(d, silent = false) {
   const other = d.id === 'A' ? D.B : D.A;
-  if (!d.bpm || !other.bpm) return;
-  const targetRate = (other.bpm * other.rate) / d.bpm;
-  const range = d.tempoRange;
-  const v = Math.max(0, Math.min(1, (targetRate - 1) / range + 0.5));
-  param(d.id, 'tempo', v);
+  if (!d.buf || !other.buf || !d.bpm || !other.bpm) return;
 
-  // Phase sync to nearest beat
-  if (other.play && d.play && d.buf && other.buf) {
-    const beatLenOther = 60 / (other.bpm * other.rate);
-    const beatLenThis = 60 / (d.bpm * d.rate);
-    const phase = (other.pos() % beatLenOther) / beatLenOther;
-    const curBeat = Math.floor(d.pos() / beatLenThis);
-    d.seek(curBeat * beatLenThis + phase * beatLenThis);
+  // Toggle sync off if already active and user manually clicked the button
+  if (!silent && d.syncActive) {
+    d.syncActive = false;
+    $(`#btn-sync-${d.id}`)?.classList.remove('active', 'synced');
+    sendMidi([0x90 | (d.id === 'A' ? 1 : 2), 5, 0]);
+    sendMidi([0x90 | (d.id === 'A' ? 1 : 2), 9, 0]);
+    return;
   }
 
-  $(`#btn-sync-${d.id}`)?.classList.add('synced');
-  setTimeout(() => $(`#btn-sync-${d.id}`)?.classList.remove('synced'), 600);
+  // Set this deck as sync-locked
+  d.syncActive = true;
+  other.syncActive = false; // Reference master
+  $(`#btn-sync-${other.id}`)?.classList.remove('active');
+
+  // Master BPM is other deck's effective current tempo
+  const masterBpm = other.bpm * other.rate;
+
+  // 1. Calculate best matching ratio (1:1, half-tempo, or double-tempo)
+  const ratio1 = masterBpm / d.bpm;
+  const ratioHalf = (masterBpm * 0.5) / d.bpm;
+  const ratioDouble = (masterBpm * 2.0) / d.bpm;
+
+  let targetBpm = masterBpm;
+  let bestRatio = ratio1;
+  if (Math.abs(ratioHalf - 1) < Math.abs(bestRatio - 1)) {
+    bestRatio = ratioHalf;
+    targetBpm = masterBpm * 0.5;
+  }
+  if (Math.abs(ratioDouble - 1) < Math.abs(bestRatio - 1)) {
+    bestRatio = ratioDouble;
+    targetBpm = masterBpm * 2.0;
+  }
+
+  const neededRate = targetBpm / d.bpm;
+
+  // 2. Ensure tempoRange is wide enough to accommodate the needed rate
+  const requiredRange = Math.abs(neededRate - 1);
+  if (requiredRange > d.tempoRange) {
+    if (requiredRange <= 0.16) d.tempoRange = 0.16;
+    else d.tempoRange = 0.50;
+    const pill = $(`#tempo-range-${d.id}`);
+    if (pill) pill.textContent = `±${Math.round(d.tempoRange * 100)}%`;
+  }
+
+  // 3. Set rate and physically align slider
+  d.rate = neededRate;
+  d.setEff();
+
+  const inverted = $('#inv-tempo')?.checked || false;
+  const normalizedSlider = (neededRate - 1) / d.tempoRange + 0.5;
+  const clampedSlider = Math.max(0, Math.min(1, normalizedSlider));
+  const finalSliderVal = inverted ? 1 - clampedSlider : clampedSlider;
+  const sliderEl = $(`#tempo-slider-${d.id}`);
+  if (sliderEl) sliderEl.value = Math.round(finalSliderVal * 100);
+
+  // 4. Instant Phase Lock (Beat Grid Alignment)
+  const beatLenMaster = 60 / masterBpm;
+  const beatLenThis = 60 / (d.bpm * d.rate);
+
+  if (other.play && d.play) {
+    // Both playing: align phase immediately so kicks hit at the exact same instant
+    const masterPhase = (other.pos() % beatLenMaster) / beatLenMaster;
+    const thisPhase = (d.pos() % beatLenThis) / beatLenThis;
+    let phaseDiff = thisPhase - masterPhase;
+    if (phaseDiff > 0.5) phaseDiff -= 1;
+    if (phaseDiff < -0.5) phaseDiff += 1;
+
+    d.seek(Math.max(0, d.pos() - phaseDiff * beatLenThis));
+  } else if (other.play && !d.play) {
+    // Other deck is playing, this deck is stopped / cue ready:
+    // Align playhead phase to match master phase so hitting PLAY drops right on beat!
+    const masterPhase = (other.pos() % beatLenMaster) / beatLenMaster;
+    const curBeat = Math.round(d.pos() / beatLenThis);
+    d.off = Math.max(0, curBeat * beatLenThis + masterPhase * beatLenThis);
+    d.seek(d.off);
+  }
+
+  // 5. Button glow & MIDI feedback
+  const syncBtn = $(`#btn-sync-${d.id}`);
+  if (syncBtn) {
+    syncBtn.classList.add('active', 'synced');
+    setTimeout(() => syncBtn.classList.remove('synced'), 600);
+  }
+  sendMidi([0x90 | (d.id === 'A' ? 1 : 2), 5, 127]);
+  sendMidi([0x90 | (d.id === 'A' ? 1 : 2), 9, 127]);
 }
 
 // Sampler Bank
@@ -663,20 +759,93 @@ function updateHarmonicMixingHUD() {
   if (boxB) boxB.classList.toggle('harmonic-match', isCompatible);
 }
 
-function extractPeaks(buf, count = 600) {
+// 3-Band Frequency Waveform Peak Extraction (Bass = Red, Mid = Green, High = Blue)
+function extractFrequencyPeaks(buf, count = 800) {
   const x = buf.getChannelData(0);
-  const step = Math.max(1, Math.floor(x.length / count));
-  const p = new Float32Array(count);
+  const len = x.length;
+  const sr = buf.sampleRate;
+  const step = Math.max(1, Math.floor(len / count));
+
+  const bass = new Float32Array(count);
+  const mid = new Float32Array(count);
+  const high = new Float32Array(count);
+  const maxAmp = new Float32Array(count);
+
+  // 1-pole discrete lowpass filter for bass (cutoff ~250 Hz)
+  const dt = 1 / sr;
+  const rcLow = 1 / (2 * Math.PI * 250);
+  const alphaLow = dt / (rcLow + dt);
+
+  // 1-pole discrete highpass filter for treble (cutoff ~2500 Hz)
+  const rcHigh = 1 / (2 * Math.PI * 2500);
+  const alphaHigh = rcHigh / (rcHigh + dt);
+
+  let lowPrev = 0;
+  let highPrevIn = 0;
+  let highPrevOut = 0;
+
+  const innerStride = Math.max(1, Math.floor(step / 32));
+
   for (let i = 0; i < count; i++) {
-    let m = 0;
-    for (let j = 0; j < step; j += 16) {
-      m = Math.max(m, Math.abs(x[i * step + j] || 0));
+    const blockStart = i * step;
+    const blockEnd = Math.min(len, blockStart + step);
+
+    let maxB = 0;
+    let maxM = 0;
+    let maxH = 0;
+    let maxA = 0;
+
+    for (let j = blockStart; j < blockEnd; j += innerStride) {
+      const s = x[j] || 0;
+      const absS = Math.abs(s);
+      if (absS > maxA) maxA = absS;
+
+      // Lowpass for bass
+      lowPrev = lowPrev + alphaLow * (s - lowPrev);
+      const bVal = Math.abs(lowPrev);
+      if (bVal > maxB) maxB = bVal;
+
+      // Highpass for high
+      highPrevOut = alphaHigh * (highPrevOut + s - highPrevIn);
+      highPrevIn = s;
+      const hVal = Math.abs(highPrevOut);
+      if (hVal > maxH) maxH = hVal;
+
+      // Mid band
+      const mVal = Math.abs(s - lowPrev - highPrevOut);
+      if (mVal > maxM) maxM = mVal;
     }
-    p[i] = m;
+
+    bass[i] = maxB;
+    mid[i] = maxM;
+    high[i] = maxH;
+    maxAmp[i] = maxA;
   }
-  const max = Math.max(...p) || 1;
-  return p.map(v => v / max);
+
+  // Normalize bands across the entire track
+  let peakB = 0, peakM = 0, peakH = 0, peakA = 0;
+  for (let i = 0; i < count; i++) {
+    if (bass[i] > peakB) peakB = bass[i];
+    if (mid[i] > peakM) peakM = mid[i];
+    if (high[i] > peakH) peakH = high[i];
+    if (maxAmp[i] > peakA) peakA = maxAmp[i];
+  }
+  peakB = peakB || 1;
+  peakM = peakM || 1;
+  peakH = peakH || 1;
+  peakA = peakA || 1;
+
+  for (let i = 0; i < count; i++) {
+    bass[i] /= peakB;
+    mid[i] /= peakM;
+    high[i] /= peakH;
+    maxAmp[i] /= peakA;
+  }
+
+  return { bass, mid, high, maxAmp, count };
 }
+
+const extractPeaks = extractFrequencyPeaks;
 
 // Load Audio File / Buffer into Deck
 async function loadTrackIntoDeck(d, buffer, title, artist = 'Local Track', explicitKey = null) {
@@ -688,7 +857,7 @@ async function loadTrackIntoDeck(d, buffer, title, artist = 'Local Track', expli
   d.buf = buffer;
   d.name = title;
   d.artist = artist;
-  d.pk = extractPeaks(buffer);
+  d.pk = extractFrequencyPeaks(buffer);
   d.bpm = detectBPM(buffer);
   d.origBpm = d.bpm;
 
@@ -701,12 +870,15 @@ async function loadTrackIntoDeck(d, buffer, title, artist = 'Local Track', expli
     d.key = d.keyObj.camelot;
   }
 
-  $(`#track-name-${d.id}`).textContent = title;
+  $(`#track-name-${d.id}`).textContent = `DECK ${d.id}: ${title.toUpperCase()}`;
   $(`#track-artist-${d.id}`).textContent = artist;
-  $(`#bpm-val-${d.id}`).textContent = d.bpm.toFixed(1);
+  const bpmStr = d.bpm.toFixed(2);
+  $(`#bpm-val-${d.id}`).textContent = bpmStr;
+  const hdrBpm = $(`#hdr-bpm-val-${d.id}`);
+  if (hdrBpm) hdrBpm.textContent = bpmStr;
   $(`#time-large-${d.id}`).textContent = fmt(0);
-  $(`#time-sub-${d.id}`).textContent = `-${fmt(buffer.duration)}`;
-  $(`#key-val-${d.id}`).textContent = d.keyObj.full || d.key;
+  $(`#time-sub-${d.id}`).textContent = fmt(buffer.duration);
+  $(`#key-val-${d.id}`).textContent = `#${d.keyObj?.camelot || d.key || '?'}`;
 
   updateHarmonicMixingHUD();
   updateTransportUI(d);
@@ -780,12 +952,28 @@ function drawOverviewWave(d) {
     ctx.restore();
   }
 
-  // Draw peaks
-  ctx.fillStyle = d.col;
+  // Draw 3-Band Frequency color-coded peaks: Bass in RED, Mids in GREEN, Highs in BLUE
+  const numPeaks = d.pk.count || d.pk.maxAmp?.length || 600;
   for (let i = 0; i < W; i++) {
-    const peakIdx = Math.floor((i / W) * d.pk.length);
-    const h = Math.max(1, (d.pk[peakIdx] || 0) * (H * 0.88));
-    ctx.fillRect(i, (H - h) / 2, 1, h);
+    const peakIdx = Math.floor((i / W) * numPeaks);
+    const a = d.pk.maxAmp ? (d.pk.maxAmp[peakIdx] || 0) : ((d.pk[peakIdx] || 0));
+    const b = d.pk.bass ? (d.pk.bass[peakIdx] || 0) : 0.5;
+    const m = d.pk.mid ? (d.pk.mid[peakIdx] || 0) : 0.5;
+    const totalH = Math.max(1, a * (H * 0.88));
+
+    // Highs (Blue #38bdf8) - Outer Treble Envelope
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(i, (H - totalH) / 2, 1, totalH);
+
+    // Mids (Green #22c55e) - Middle Body
+    const midH = Math.max(1, totalH * (0.3 + 0.55 * m));
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(i, (H - midH) / 2, 1, midH);
+
+    // Bass (Red #ef4444) - Punchy Core
+    const bassH = Math.max(1, totalH * (0.15 + 0.7 * b));
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(i, (H - bassH) / 2, 1, bassH);
   }
 
   // Loop region highlight
@@ -904,7 +1092,7 @@ function drawSingleParallelWave(ctx, d, topY, height, W, color) {
     ctx.fillRect(0, topY, W, height);
   }
 
-  const totalPeaks = d.pk.length;
+  const totalPeaks = d.pk.count || d.pk.length || 600;
   const peakTimeStep = dur / totalPeaks;
 
   const startSec = curPos - (centerLine / pxPerSec);
@@ -913,11 +1101,17 @@ function drawSingleParallelWave(ctx, d, topY, height, W, color) {
   const startIdx = Math.max(0, Math.floor(startSec / peakTimeStep));
   const endIdx = Math.min(totalPeaks, Math.ceil(endSec / peakTimeStep));
 
-  // Render scrolling waveform bars with 3-band frequency visualization
+  // Render scrolling waveform bars with 3-band frequency visualization:
+  // Bass in RED (#ef4444), Mids in GREEN (#22c55e), Highs in BLUE (#38bdf8)
   for (let i = startIdx; i < endIdx; i++) {
     const peakTime = i * peakTimeStep;
     const x = centerLine + (peakTime - curPos) * pxPerSec;
-    const baseH = (d.pk[i] || 0) * (height * 0.82);
+
+    const a = d.pk.maxAmp ? (d.pk.maxAmp[i] || 0) : (d.pk[i] || 0);
+    const b = d.pk.bass ? (d.pk.bass[i] || 0) : 0.5;
+    const m = d.pk.mid ? (d.pk.mid[i] || 0) : 0.5;
+
+    const baseH = a * (height * 0.84);
 
     // Live frequency analyzer modulation for bars near the center active playhead
     const distFromCenter = Math.abs(x - centerLine);
@@ -929,25 +1123,25 @@ function drawSingleParallelWave(ctx, d, topY, height, W, color) {
       liveH = baseH * (1 + boost);
     }
 
-    // Modern 3-Band Frequency Waveform rendering:
-    // Layer 1: High frequency outer envelope (lighter shade for treble/air)
-    ctx.fillStyle = d.id === 'A' ? '#ffaa44' : '#66e0ff';
-    ctx.globalAlpha = 0.35 + act.high * 0.45;
-    ctx.fillRect(x, centerY - liveH / 2, 2, liveH);
+    const barW = 2;
 
-    // Layer 2: Main deck color mid envelope (vocals, snares, synths)
-    ctx.fillStyle = color;
+    // 1. HIGHS (Blue: #38bdf8) - Outer Treble Envelope
+    ctx.fillStyle = '#38bdf8';
     ctx.globalAlpha = 0.85;
-    const midH = liveH * 0.65;
-    ctx.fillRect(x, centerY - midH / 2, 2, midH);
+    ctx.fillRect(x, centerY - liveH / 2, barW, liveH);
 
-    // Layer 3: Bass punch core (bright energetic center line that pops on kicks)
-    if (d.play && act.bass > 0.1) {
-      ctx.fillStyle = '#ffffff';
-      ctx.globalAlpha = Math.min(0.95, act.bass * 0.9);
-      const bassH = Math.max(2, liveH * 0.35 * (1 + act.bass * 0.5));
-      ctx.fillRect(x, centerY - bassH / 2, 2, bassH);
-    }
+    // 2. MIDS (Green: #22c55e) - Vocals, Snares, Synths
+    const midH = Math.max(2, liveH * (0.35 + 0.5 * m));
+    ctx.fillStyle = '#22c55e';
+    ctx.globalAlpha = 0.95;
+    ctx.fillRect(x, centerY - midH / 2, barW, midH);
+
+    // 3. BASS (Red: #ef4444) - Kick Drum & Sub-Bass Core
+    const bassBoost = (d.play && act.bass > 0.08) ? (1 + act.bass * 0.5) : 1;
+    const bassH = Math.max(2, liveH * (0.2 + 0.65 * b) * bassBoost);
+    ctx.fillStyle = '#ef4444';
+    ctx.globalAlpha = 1.0;
+    ctx.fillRect(x, centerY - bassH / 2, barW, bassH);
   }
 
   // Active Loop region shading in scrolling waveform
@@ -1062,8 +1256,15 @@ function updatePhaseMeter() {
 
   // diff is in range -0.5 to +0.5
   const pct = 50 + diff * 100;
+  const isMatch = Math.abs(diff) < 0.05;
   marker.style.left = `${Math.max(5, Math.min(95, pct))}%`;
-  marker.style.background = Math.abs(diff) < 0.05 ? '#22c55e' : (Math.abs(diff) < 0.15 ? '#f59e0b' : '#ef4444');
+  marker.style.background = isMatch ? '#22c55e' : (Math.abs(diff) < 0.15 ? '#f59e0b' : '#ef4444');
+
+  const matchText = $('#sync-match-text');
+  if (matchText) {
+    matchText.style.color = isMatch ? '#22c55e' : (Math.abs(diff) < 0.15 ? '#f59e0b' : 'var(--text-muted)');
+    matchText.style.textShadow = isMatch ? '0 0 10px rgba(34, 197, 94, 0.8)' : 'none';
+  }
 }
 
 // Stereo VU Meter Animation
@@ -1762,7 +1963,7 @@ function toggleMixRecording() {
 function saveRecordedMix() {
   const blob = new Blob(recordedChunks, { type: 'audio/webm' });
   const now = new Date();
-  const title = `CrossDJ_Mix_${now.toISOString().slice(0, 10)}_${now.getHours()}h${String(now.getMinutes()).padStart(2, '0')}m.webm`;
+  const title = `DJ_An2ny_Mix_${now.toISOString().slice(0, 10)}_${now.getHours()}h${String(now.getMinutes()).padStart(2, '0')}m.webm`;
   saveRecordingToDB(title, blob, recordSeconds);
 }
 
@@ -1789,7 +1990,7 @@ function handleMidiMessage(e) {
       if (a === 7 && on) dk.play ? dk.stop() : dk.go();
       else if (a === 6) on ? cueDown(dk) : cueUp(dk);
       else if (a === 8) dk.touch = on;
-      else if (a === 5 && on) syncDeck(dk);
+      else if ((a === 5 || a === 9) && on) syncDeck(dk);
     }
 
     const pd = ch === 6 ? D.A : ch === 7 ? D.B : null;
@@ -1883,6 +2084,100 @@ function setupEventListeners() {
 
   // Record Mix button
   $('#btn-record-mix')?.addEventListener('click', toggleMixRecording);
+  $('#btn-top-rec')?.addEventListener('click', toggleMixRecording);
+
+  // Cross DJ Top Header Load Track (+) Buttons
+  $('#btn-load-track-A')?.addEventListener('click', () => {
+    AC.resume();
+    const drawer = $('.bottom-drawer');
+    if (drawer) {
+      drawer.classList.add('open-drawer');
+      $$('.tab-btn').forEach(t => t.classList.remove('active'));
+      $$('.tab-content').forEach(c => c.classList.remove('active'));
+      $('[data-tab="demos"]')?.classList.add('active');
+      $('#tab-demos')?.classList.add('active');
+    }
+  });
+
+  $('#btn-load-track-B')?.addEventListener('click', () => {
+    AC.resume();
+    const drawer = $('.bottom-drawer');
+    if (drawer) {
+      drawer.classList.add('open-drawer');
+      $$('.tab-btn').forEach(t => t.classList.remove('active'));
+      $$('.tab-content').forEach(c => c.classList.remove('active'));
+      $('[data-tab="demos"]')?.classList.add('active');
+      $('#tab-demos')?.classList.add('active');
+    }
+  });
+
+  // Settings Gear & Top Pill
+  $('#btn-settings-gear')?.addEventListener('click', () => {
+    $('.bottom-drawer')?.classList.toggle('open-drawer');
+  });
+
+  $('#btn-top-sampler')?.addEventListener('click', () => {
+    AC.resume();
+    const drawer = $('.bottom-drawer');
+    if (drawer) {
+      drawer.classList.add('open-drawer');
+      $$('.tab-btn').forEach(t => t.classList.remove('active'));
+      $$('.tab-content').forEach(c => c.classList.remove('active'));
+      $('[data-tab="sampler"]')?.classList.add('active');
+      $('#tab-sampler')?.classList.add('active');
+    }
+  });
+
+  // Center Mode Switcher (Mixer vs Waveforms)
+  $('#btn-view-waves')?.addEventListener('click', () => {
+    $('#btn-view-waves')?.classList.add('active');
+    $('#btn-view-mixer')?.classList.remove('active');
+    const w = $('#center-view-waves');
+    const m = $('#center-view-mixer');
+    if (w) w.style.display = 'flex';
+    if (m) m.style.display = 'none';
+  });
+
+  $('#btn-view-mixer')?.addEventListener('click', () => {
+    $('#btn-view-mixer')?.classList.add('active');
+    $('#btn-view-waves')?.classList.remove('active');
+    const w = $('#center-view-waves');
+    const m = $('#center-view-mixer');
+    if (w) w.style.display = 'none';
+    if (m) m.style.display = 'flex';
+  });
+
+  // Clear Hot Cues (Trash can button)
+  $('#btn-clear-cue-A')?.addEventListener('click', () => {
+    D.A.hot = new Array(8).fill(null);
+    updateHotCueUI(D.A);
+    saveHotCuesToDB(D.A);
+  });
+  $('#btn-clear-cue-B')?.addEventListener('click', () => {
+    D.B.hot = new Array(8).fill(null);
+    updateHotCueUI(D.B);
+    saveHotCuesToDB(D.B);
+  });
+
+  // Crossfader Nudge / Cut buttons
+  $('#btn-xfade-left')?.addEventListener('click', () => xfade(0));
+  $('#btn-xfade-right')?.addEventListener('click', () => xfade(1));
+
+  // FX Buttons interactive filter toggle
+  $$('.cdj-fx-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const isA = btn.id.includes('a');
+      const d = isA ? D.A : D.B;
+      const t = btn.textContent.toLowerCase();
+      if (t.includes('lp')) {
+        param(d.id, 'fl', 0.25);
+      } else if (t.includes('hp')) {
+        param(d.id, 'fl', 0.75);
+      } else {
+        param(d.id, 'fl', 0.5);
+      }
+    });
+  });
 
   // Deck Controls
   ['A', 'B'].forEach(id => {
@@ -2149,7 +2444,7 @@ function setupEventListeners() {
           dnb: '11A (F#m)',
           hiphop: '4A (Fm)',
         };
-        loadTrackIntoDeck(d, buffer, titles[genre] || 'Offline Beat', 'Cross DJ Offline', keys[genre]);
+        loadTrackIntoDeck(d, buffer, titles[genre] || 'Offline Beat', 'DJ An2ny Offline', keys[genre]);
         btn.textContent = `DECK ${targetDeckId}`;
         // In mobile landscape mode, auto-close drawer once loaded
         if (window.innerHeight < 540) {
@@ -2235,7 +2530,7 @@ async function handleLoadedFiles(files) {
 function renderPads(d) {
   const pads = $$(`[data-deck="${d.id}"][data-pad]`);
   pads.forEach((pad, idx) => {
-    pad.className = 'pad-btn';
+    pad.className = 'cdj-pad-cell pad-btn';
     if (d.padMode === 'hotcue') {
       pad.textContent = d.hot[idx] != null ? `CUE ${idx + 1}` : `${idx + 1}`;
       if (d.hot[idx] != null) pad.classList.add('set');
@@ -2267,7 +2562,7 @@ function runAnimationLoop() {
       const timeLarge = $(`#time-large-${id}`);
       const timeSub = $(`#time-sub-${id}`);
       if (timeLarge) timeLarge.textContent = fmt(cur);
-      if (timeSub) timeSub.textContent = `-${fmt(rem)}`;
+      if (timeSub) timeSub.textContent = fmt(rem);
 
       drawOverviewWave(d);
     }
@@ -2342,9 +2637,9 @@ window.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     try {
       const bufA = generateOfflineDemoTrack('house');
-      loadTrackIntoDeck(D.A, bufA, 'Neon Drive (House 124)', 'Cross DJ Offline', '8A (Am)');
+      loadTrackIntoDeck(D.A, bufA, 'Neon Drive (House 124)', 'DJ An2ny Offline', '8A (Am)');
       const bufB = generateOfflineDemoTrack('techno');
-      loadTrackIntoDeck(D.B, bufB, 'Cyber Pulse (Techno 130)', 'Cross DJ Offline', '6A (Gm)');
+      loadTrackIntoDeck(D.B, bufB, 'Cyber Pulse (Techno 130)', 'DJ An2ny Offline', '6A (Gm)');
     } catch (_) {}
   }, 100);
 
